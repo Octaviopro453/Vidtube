@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reproductor de Video Personalizado</title>
+    <link href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .video-container {
+            max-width: 800px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        video {
+            width: 100%;
+            display: block;
+        }
+        .controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            transition: opacity 0.3s;
+            opacity: 0;
+        }
+        .video-container:hover .controls {
+            opacity: 1;
+        }
+        .controls button, .controls input {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            margin: 0 10px;
+            cursor: pointer;
+        }
+        .progress {
+            flex-grow: 1;
+            height: 5px;
+            background-color: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            position: relative;
+        }
+        .progress-filled {
+            width: 0;
+            height: 100%;
+            background-color: #fff;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .volume-slider {
+            width: 100px;
+        }
+        .hidden-controls {
+            display: none;
+            flex-direction: column;
+            position: absolute;
+            bottom: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .hidden-controls.show {
+            display: flex;
+        }
+        .time-display {
+            margin: 0 10px;
+        }
+        .video-title {
+            color: white;
+            font-size: 16px;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <video id="video" preload="none"></video>
+        <div class="controls">
+            <button id="play-pause"><i class="fas fa-play"></i></button>
+            <div class="progress">
+                <div class="progress-filled"></div>
+            </div>
+            <span id="time-display" class="time-display">0:00 / 0:00</span>
+            <button id="fullscreen"><i class="fas fa-expand"></i></button>
+            <button id="menu-toggle"><i class="fas fa-bars"></i></button>
+        </div>
+        <div class="hidden-controls" id="hidden-controls">
+            <button id="mute"><i class="fas fa-volume-up"></i></button>
+            <input type="range" id="volume" class="volume-slider" min="0" max="1" step="0.05" value="1">
+            <button id="rewind"><i class="fas fa-backward"></i></button>
+            <button id="fast-forward"><i class="fas fa-forward"></i></button>
+            <button id="speed"><i class="fas fa-tachometer-alt"></i></button>
+            <button id="restart"><i class="fas fa-redo"></i></button>
+            <button id="pip"><i class="fas fa-compress"></i></button>
+        </div>
+        <div class="video-title" id="video-title"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const video = document.getElementById('video');
+            const playPauseButton = document.getElementById('play-pause');
+            const muteButton = document.getElementById('mute');
+            const progressFilled = document.querySelector('.progress-filled');
+            const volumeSlider = document.getElementById('volume');
+            const rewindButton = document.getElementById('rewind');
+            const fastForwardButton = document.getElementById('fast-forward');
+            const speedButton = document.getElementById('speed');
+            const restartButton = document.getElementById('restart');
+            const fullscreenButton = document.getElementById('fullscreen');
+            const pipButton = document.getElementById('pip');
+            const hiddenControls = document.getElementById('hidden-controls');
+            const menuToggle = document.getElementById('menu-toggle');
+            const timeDisplay = document.getElementById('time-display');
+            const videoTitle = document.getElementById('video-title');
+            let fullscreen = false;
+
+            // Obtener el enlace del video y el título del localStorage
+            const videoSrc = localStorage.getItem('videoSrc');
+            const videoTitleStored = localStorage.getItem('videoTitle');
+
+            // Establecer el título del video
+            videoTitle.textContent = videoTitleStored;
+
+            // Establecer el origen del video
+            if (videoSrc) {
+                video.src = videoSrc;
+            } else {
+                console.error('No se encontró el enlace del video en localStorage.');
+            }
+
+            function togglePlay() {
+                if (video.paused) {
+                    video.play();
+                    playPauseButton.innerHTML = '<i class="fas fa-pause"></i>';
+                } else {
+                    video.pause();
+                    playPauseButton.innerHTML = '<i class="fas fa-play"></i>';
+                }
+            }
+
+            function toggleMute() {
+                video.muted = !video.muted;
+                muteButton.innerHTML = video.muted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
+            }
+
+            function updateVolume() {
+                video.volume = volumeSlider.value;
+            }
+
+            function updateProgress() {
+                if (video.duration) {
+                    const percent = (video.currentTime / video.duration) * 100;
+                    progressFilled.style.width = `${percent}%`;
+                }
+            }
+
+            function updateTimeDisplay() {
+                const currentTime = formatTime(video.currentTime);
+                const duration = formatTime(video.duration);
+                timeDisplay.textContent = `${currentTime} / ${duration}`;
+            }
+
+            function formatTime(time) {
+                const minutes = Math.floor(time / 60);
+                const seconds = Math.floor(time % 60);
+                return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            function scrub(e) {
+                const scrubTime = (e.offsetX / progress.offsetWidth) * video.duration;
+                if (isFinite(scrubTime) && scrubTime >= 0 && scrubTime <= video.duration) {
+                    try {
+                        video.currentTime = scrubTime;
+                    } catch (error) {
+                        console.error('Error al establecer currentTime:', error);
+                    }
+                }
+            }
+
+            function rewind() {
+                video.currentTime -= 10;
+            }
+
+            function fastForward() {
+                video.currentTime += 10;
+            }
+
+            function changeSpeed() {
+                if (video.playbackRate === 1) {
+                    video.playbackRate = 1.5;
+                    speedButton.innerHTML = '<i class="fas fa-tachometer-alt" style="color:yellow;"></i>';
+                } else if (video.playbackRate === 1.5) {
+                    video.playbackRate = 2;
+                    speedButton.innerHTML = '<i class="fas fa-tachometer-alt" style="color:red;"></i>';
+                } else {
+                    video.playbackRate = 1;
+                    speedButton.innerHTML = '<i class="fas fa-tachometer-alt"></i>';
+                }
+            }
+
+            function restart() {
+                video.currentTime = 0;
+                video.play();
+            }
+
+            function toggleFullscreen() {
+                if (!fullscreen) {
+                    if (video.requestFullscreen) {
+                        video.requestFullscreen();
+                    } else if (video.webkitRequestFullscreen) { /* Safari */
+                        video.webkitRequestFullscreen();
+                    } else if (video.msRequestFullscreen) { /* IE11 */
+                        video.msRequestFullscreen();
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) { /* Safari */
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) { /* IE11 */
+                        document.msExitFullscreen();
+                    }
+                }
+            }
+
+            async function togglePiP() {
+                if (video !== document.pictureInPictureElement) {
+                    try {
+                        await video.requestPictureInPicture();
+                    } catch (error) {
+                        console.error('Error al intentar activar el modo PiP:', error);
+                    }
+                } else {
+                    await document.exitPictureInPicture();
+                }
+            }
+
+            function toggleMenu() {
+                hiddenControls.classList.toggle('show');
+            }
+
+            playPauseButton.addEventListener('click', togglePlay);
+            muteButton.addEventListener('click', toggleMute);
+            volumeSlider.addEventListener('input', updateVolume);
+            rewindButton.addEventListener('click', rewind);
+            fastForwardButton.addEventListener('click', fastForward);
+            speedButton.addEventListener('click', changeSpeed);
+            restartButton.addEventListener('click', restart);
+            fullscreenButton.addEventListener('click', toggleFullscreen);
+            pipButton.addEventListener('click', togglePiP);
+            menuToggle.addEventListener('click', toggleMenu);
+            video.addEventListener('timeupdate', updateProgress);
+            video.addEventListener('timeupdate', updateTimeDisplay);
+            video.addEventListener('loadedmetadata', updateProgress);
+            video.addEventListener('loadedmetadata', updateTimeDisplay);
+
+            let mousedown = false;
+            progress.addEventListener('mousedown', () => mousedown = true);
+            progress.addEventListener('mouseup', () => mousedown = false);
+            progress.addEventListener('mousemove', (e) => mousedown && scrub(e));
+            progress.addEventListener('click', scrub);
+
+            const videoContainer = document.querySelector('.video-container');
+            videoContainer.addEventListener('mouseleave', () => {
+                document.querySelector('.controls').style.opacity = '0';
+            });
+            videoContainer.addEventListener('mouseenter', () => {
+                document.querySelector('.controls').style.opacity = '1';
+            });
+
+            // Evento para controlar cambios de pantalla completa
+            document.addEventListener('fullscreenchange', () => {
+                fullscreen = !!document.fullscreenElement;
+                if (!fullscreen) {
+                    document.querySelector('.controls').style.opacity = '1'; // Mostrar controles al salir de pantalla completa
+                }
+            });
+        });
+    </script>
+</body>
+</html>
