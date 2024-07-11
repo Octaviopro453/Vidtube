@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vidtube</title>
+    <link href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+        }
+
+        header {
+            background-color: #212121;
+            color: white;
+            padding: 10px 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            padding: 8px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .search-bar button {
+            padding: 8px 15px;
+            font-size: 16px;
+            border: none;
+            background-color: #e62117;
+            color: white;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+
+        .search-bar button i {
+            font-size: 18px;
+        }
+
+        main {
+            padding: 20px;
+        }
+
+        .video-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .video-card {
+            background-color: white;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .video-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .video-card .content {
+            padding: 10px;
+        }
+
+        .video-card .content h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #212121;
+        }
+
+        .video-card .content p {
+            margin: 5px 0 0;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <h1>Vidtube</h1>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Buscar...">
+                <button id="search-button"><i class="fas fa-search"></i></button>
+            </div>
+        </div>
+    </header>
+    <main>
+        <div class="container">
+            <div class="video-list" id="video-list">
+                <!-- Los videos se cargarán aquí dinámicamente -->
+            </div>
+        </div>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const videos = [
+                {
+                    title: 'Five Nigth at Freddys',
+                    thumbnail: 'https://octaviopro453.github.io/VidtubeImages/Fnaf.jpeg',
+                    description: 'OctavioproYT453',
+                    src: 'http://notabasica.com/612132/FiveNightsAtFreddys.mp4'
+                },
+                // Agrega más videos según sea necesario
+            ];
+
+            const videoList = document.getElementById('video-list');
+
+            // Función para renderizar la lista de videos
+            function renderVideoList(videos) {
+                videoList.innerHTML = ''; // Limpiar la lista antes de renderizar
+
+                videos.forEach(video => {
+                    const videoCard = document.createElement('div');
+                    videoCard.classList.add('video-card');
+
+                    videoCard.innerHTML = `
+                        <img src="${video.thumbnail}" alt="${video.title}">
+                        <div class="content">
+                            <h3>${video.title}</h3>
+                            <p>${video.description}</p>
+                        </div>
+                    `;
+
+                    videoCard.addEventListener('click', () => {
+                        localStorage.setItem('videoSrc', video.src);
+                        localStorage.setItem('videoTitle', video.title);
+                        window.location.href = 'https://octaviopro453.github.io/Vidtube/Video.html';
+                    });
+
+                    videoList.appendChild(videoCard);
+                });
+            }
+
+            // Renderizar la lista completa de videos al cargar la página
+            renderVideoList(videos);
+
+            // Función para filtrar videos por título
+            function filterVideosByTitle(searchText) {
+                const filteredVideos = videos.filter(video =>
+                    video.title.toLowerCase().includes(searchText.toLowerCase())
+                );
+                renderVideoList(filteredVideos);
+            }
+
+            // Obtener elementos del DOM
+            const searchInput = document.getElementById('search-input');
+            const searchButton = document.getElementById('search-button');
+
+            // Evento de búsqueda al hacer clic en el botón
+            searchButton.addEventListener('click', () => {
+                const searchText = searchInput.value.trim();
+                if (searchText !== '') {
+                    filterVideosByTitle(searchText);
+                } else {
+                    renderVideoList(videos);
+                }
+            });
+
+            // Evento de búsqueda al presionar Enter en el campo de búsqueda
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const searchText = searchInput.value.trim();
+                    if (searchText !== '') {
+                        filterVideosByTitle(searchText);
+                    } else {
+                        renderVideoList(videos);
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
